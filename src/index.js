@@ -4,7 +4,7 @@ import { createUser, deleteId, fetchUser, findId, updateId, signup, login, forge
 import dotenv from 'dotenv';
 dotenv.config();    
 const app = express();
-const port = 3001;
+const port = 3000;
 app.use(express.json());
 // mtahir8444_db_user
 // eKwgU8Q21XmGfBxT
