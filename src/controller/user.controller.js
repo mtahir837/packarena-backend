@@ -74,7 +74,6 @@ export const signup = async (req, res) => {
   try {
     const { name, email, password } = req.body;
     
-    // Validate required fields
     if (!name || !email || !password) {
       return res.status(400).json({ message: "Name, email, and password are required" });
     }
@@ -85,7 +84,6 @@ export const signup = async (req, res) => {
       return res.status(400).json({ message: "Please provide a valid email address" });
     }
     
-    // Validate password length
     if (password.length < 6) {
       return res.status(400).json({ message: "Password must be at least 6 characters long" });
     }
