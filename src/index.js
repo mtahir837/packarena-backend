@@ -52,8 +52,8 @@ app.post("/create-quote", createQuote)
 app.get("/all-quotes", fetchQuotes)
 
 // Custom Quote Routes
-app.post("/custom-quote", createCustomQuote)
-app.get("/custom-quote", fetchCustomQuotes)
+app.post("/create-custom-quote", createCustomQuote)
+app.get("/all-custom-quote", fetchCustomQuotes)
 
 app.listen(port, () => {
     console.log(`Example app listening on port localhot:${port}!`);
