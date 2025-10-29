@@ -1,4 +1,5 @@
 import User from "../modal/user.js";
+import Role from "../modal/role.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
@@ -6,14 +7,39 @@ import crypto from "crypto";
 export const createUser = async (req, res) => {
   // console.log("createUser------",req.body);
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role, phone, address } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
-    const createUser = await User({ name, email, password: hashedPassword });
+    
+    // Get or assign default role
+    let userRole;
+    if (role) {
+      userRole = await Role.findOne({ name: role });
+      if (!userRole) {
+        userRole = await Role.create({ name: role });
+      }
+    } else {
+      // Default to "user" role
+      userRole = await Role.findOne({ name: "user" });
+      if (!userRole) {
+        userRole = await Role.create({ name: "user" });
+      }
+    }
+    
+    const createUser = new User({ 
+      name, 
+      email, 
+      password: hashedPassword, 
+      role: userRole._id,
+      ...(phone && { phone }),
+      ...(address && { address })
+    });
     await createUser.save();
-    res.status(201).json(createUser);
+    const populatedUser = await User.findById(createUser._id).populate('role', 'name');
+    res.status(201).json(populatedUser);
     
   } catch (error) {
-    res.status(500).json("internal server error");
+    console.log(error);
+    res.status(500).json({ message: "internal server error", error: error.message });
   }
 
 
@@ -22,10 +48,8 @@ export const createUser = async (req, res) => {
 export const fetchUser = async (req, res) => {
   // console.log("createUser------",req.body);
   try {
-    const { name, email, password } = req.body;
-    const getUser = await User.find().sort({createdAt:-1}).select("-password");
+    const getUser = await User.find().sort({createdAt:-1}).select("-password").populate('role', 'name');
    res.status(200).json({message:"users fetched successfully",getUser});
-    console.log(findUser, "findUser");
   } catch (error) {
     console.log(error);
     res.status(500).json("internal server error");
@@ -35,9 +59,9 @@ export const findId = async (req, res) => {
   // console.log("createUser------",req.body);
   try {
     
-    const findUser = await User.findById(req.params.id);
+    const findUser = await User.findById(req.params.id).populate('role', 'name');
     if(!findUser){
-        res.status(404).json({message:"useer not find"})
+        return res.status(404).json({message:"user not found"})
     }
     console.log(findUser,"finduser")
     res.status(200).json(findUser);
@@ -61,8 +85,27 @@ export const deleteId = async (req, res) => {
 export const updateId = async (req, res) => {
   // console.log("createUser------",req.body);
   try {
+    const updateData = { ...req.body };
     
-    const updatedUser = await User.findByIdAndUpdate(req.params.id,req.body);
+    // If role name is provided, find the role ID
+    if (updateData.role && typeof updateData.role === 'string') {
+      let roleDoc = await Role.findOne({ name: updateData.role });
+      if (!roleDoc) {
+        roleDoc = await Role.create({ name: updateData.role });
+      }
+      updateData.role = roleDoc._id;
+    }
+    
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    ).populate('role', 'name');
+    
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
     res.status(200).json({message:"updated user successfully",updatedUser});
   } catch (error) {
     console.log(error);
@@ -72,7 +115,7 @@ export const updateId = async (req, res) => {
 
 export const signup = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role, phone, address } = req.body;
     
     if (!name || !email || !password) {
       return res.status(400).json({ message: "Name, email, and password are required" });
@@ -95,8 +138,33 @@ export const signup = async (req, res) => {
     
     const hashedPassword = await bcrypt.hash(password, 10);
     
-    const newUser = new User({ name, email, password: hashedPassword });
+    // Get or assign default role
+    let userRole;
+    if (role) {
+      userRole = await Role.findOne({ name: role });
+      if (!userRole) {
+        userRole = await Role.create({ name: role });
+      }
+    } else {
+      // Default to "user" role
+      userRole = await Role.findOne({ name: "user" });
+      if (!userRole) {
+        userRole = await Role.create({ name: "user" });
+      }
+    }
+    
+    const newUser = new User({ 
+      name, 
+      email, 
+      password: hashedPassword, 
+      role: userRole._id,
+      ...(phone && { phone }),
+      ...(address && { address })
+    });
     await newUser.save();
+    
+    // Populate role for response
+    const populatedUser = await User.findById(newUser._id).populate('role', 'name');
     
     const token = jwt.sign(
       { userId: newUser._id, email: newUser.email },
@@ -107,9 +175,10 @@ export const signup = async (req, res) => {
     res.status(201).json({
       message: "User created successfully",
       user: {
-        id: newUser._id,
-        name: newUser.name,
-        email: newUser.email
+        id: populatedUser._id,
+        name: populatedUser.name,
+        email: populatedUser.email,
+        role: populatedUser.role
       },
       token
     });
@@ -124,7 +193,7 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
     
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).populate('role', 'name');
     if (!user) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
@@ -145,7 +214,8 @@ export const login = async (req, res) => {
       user: {
         id: user._id,
         name: user.name,
-        email: user.email
+        email: user.email,
+        role: user.role
       },
       token
     });

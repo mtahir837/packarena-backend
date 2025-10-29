@@ -1,70 +1,80 @@
-import User from "../modal/user.js";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import crypto from "crypto";
+import Role from "../modal/role.js";
 
 export const createRole = async (req, res) => {
-    // console.log("createUser------",req.body);
     try {
       const { name } = req.body;
-      const createRole = await User( { name });
+      
+      if (!name) {
+        return res.status(400).json({ message: "Role name is required" });
+      }
+      
+      const existingRole = await Role.findOne({ name });
+      if (existingRole) {
+        return res.status(400).json({ message: "Role already exists" });
+      }
+      
+      const createRole = new Role({ name });
       await createRole.save();
-      res.status(201).json(createRole);
+      res.status(201).json({ message: "Role created successfully", role: createRole });
       
     } catch (error) {
-      res.status(500).json("internal server error");
+      console.log(error);
+      res.status(500).json({ message: "internal server error", error: error.message });
     }
-  
-  
-  
   };
+
 export const fetchRole = async (req, res) => {
-  // console.log("createUser------",req.body);
   try {
-    const { name,  } = req.body;
-   res.status(200).json({message:"roles fetched successfully",findRole});
-    console.log(findRole, "findRole");
+    const findRole = await Role.find().sort({ createdAt: -1 });
+    res.status(200).json({ message: "roles fetched successfully", roles: findRole });
   } catch (error) {
     console.log(error);
-    res.status(500).json("internal server error");
+    res.status(500).json({ message: "internal server error" });
   }
 };
+
 export const findRoleId = async (req, res) => {
-  // console.log("createUser------",req.body);
   try {
-    
     const findRole = await Role.findById(req.params.id);
-    if(!findUser){
-        res.status(404).json({message:"useer not find"})
+    if (!findRole) {
+      return res.status(404).json({ message: "role not found" });
     }
-    console.log(findUser,"finduser")
-    res.status(200).json(findUser);
+    res.status(200).json({ message: "role fetched successfully", role: findRole });
   } catch (error) {
     console.log(error);
-    res.status(500).json("internal server error");
+    res.status(500).json({ message: "internal server error" });
   }
 };
-export const deleteId = async (req, res) => {
-  // console.log("createUser------",req.body);
+
+export const deleteRoleId = async (req, res) => {
   try {
-    
-    const findUser = await User.findByIdAndDelete(req.params.id);
-    res.status(200).json({message:"deleted successfully"});
-    console.log(findUser, "findUser");
+    const findRole = await Role.findByIdAndDelete(req.params.id);
+    if (!findRole) {
+      return res.status(404).json({ message: "role not found" });
+    }
+    res.status(200).json({ message: "deleted successfully", role: findRole });
   } catch (error) {
     console.log(error);
-    res.status(500).json("internal server error");
+    res.status(500).json({ message: "internal server error" });
   }
 };
-export const updateId = async (req, res) => {
-  // console.log("createUser------",req.body);
+
+export const updateRoleId = async (req, res) => {
   try {
+    const updatedRole = await Role.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
     
-    const updatedUser = await User.findByIdAndUpdate(req.params.id,req.body);
-    res.status(200).json({message:"updated user successfully",updatedUser});
+    if (!updatedRole) {
+      return res.status(404).json({ message: "role not found" });
+    }
+    
+    res.status(200).json({ message: "updated role successfully", role: updatedRole });
   } catch (error) {
     console.log(error);
-    res.status(500).json("internal server error");
+    res.status(500).json({ message: "internal server error" });
   }
 };
 

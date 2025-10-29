@@ -10,12 +10,12 @@ const userSchema = new mongoose.Schema({
         required: true
     },
     phone: {
-        type: number,
-        required: true
+        type: Number,
+        required: false
     },
     address: {
         type: String,
-        required: true
+        required: false
     },
     password: {
         type: String,
@@ -34,6 +34,8 @@ const userSchema = new mongoose.Schema({
         type: Date,
         default: null
     }
+}, {
+    timestamps: true
 })
 const User = mongoose.model("User", userSchema);
 export default User;
