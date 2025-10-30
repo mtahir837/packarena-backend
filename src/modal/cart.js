@@ -28,7 +28,6 @@ const cartSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Pre-save middleware to remove duplicate products
 cartSchema.pre('save', function(next) {
     const seen = new Map();
     this.items = this.items.filter(item => {
