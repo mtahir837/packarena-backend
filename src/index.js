@@ -5,6 +5,7 @@ import { createCategory, fetchCategories, getCategoryById, updateCategory, delet
 import { createProduct, fetchProducts, getProductById, getProductsByCategory, updateProduct, deleteProduct } from './controller/product.controller.js';
 import { createQuote, fetchQuotes } from './controller/productQuote.controller.js';
 import { createCustomQuote, fetchCustomQuotes } from './controller/customQuote.controller.js';
+import { addToCart, viewCart, updateCartItem, removeFromCart, clearCart } from './controller/cart.controller.js';
 import dotenv from 'dotenv';
 dotenv.config();    
 const app = express();
@@ -54,6 +55,13 @@ app.get("/all-quotes", fetchQuotes)
 // Custom Quote Routes
 app.post("/create-custom-quote", createCustomQuote)
 app.get("/all-custom-quote", fetchCustomQuotes)
+
+// Cart Routes
+app.post("/cart/add", addToCart)
+app.get("/cart/:userId", viewCart)
+app.put("/cart/update", updateCartItem)
+app.delete("/cart/remove", removeFromCart)
+app.delete("/cart/clear/:userId", clearCart)
 
 app.listen(port, () => {
     console.log(`Example app listening on port localhot:${port}!`);
