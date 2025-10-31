@@ -33,6 +33,18 @@ const userSchema = new mongoose.Schema({
     resetTokenExpiry: {
         type: Date,
         default: null
+    },
+    verifyToken: {
+        type: String,
+        default: null
+    },
+    verifyTokenExpiry: {
+        type: Date,
+        default: null
+    },
+    isVerified: {
+        type: Boolean,
+        default: false
     }
 }, {
     timestamps: true

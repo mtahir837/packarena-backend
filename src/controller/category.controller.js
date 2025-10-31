@@ -3,7 +3,7 @@ import Product from "../modal/product.js";
 
 export const createCategory = async (req, res) => {
     try {
-        const { name, slug, image, description, heading, subheading, subDescription } = req.body;
+        const { name, slug, image, description } = req.body;
         
         if (!name || !slug) {
             return res.status(400).json({ message: "Name and slug are required" });
@@ -18,10 +18,7 @@ export const createCategory = async (req, res) => {
             name,
             slug,
             image,
-            description,
-            heading,
-            subheading,
-            subDescription
+            description
         });
         
         await newCategory.save();
@@ -80,7 +77,7 @@ export const getCategoryById = async (req, res) => {
 
 export const updateCategory = async (req, res) => {
     try {
-        const { name, slug, image, description, heading, subheading, subDescription } = req.body;
+        const { name, slug, image, description } = req.body;
         
         if (slug) {
             const existingCategory = await Category.findOne({ slug, _id: { $ne: req.params.id } });
@@ -91,7 +88,7 @@ export const updateCategory = async (req, res) => {
         
         const updatedCategory = await Category.findByIdAndUpdate(
             req.params.id,
-            { name, slug, image, description, heading, subheading, subDescription },
+            { name, slug, image, description },
             { new: true, runValidators: true }
         );
         

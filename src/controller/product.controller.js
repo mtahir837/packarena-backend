@@ -31,7 +31,7 @@ export const createProduct = async (req, res) => {
         await newProduct.save();
         
         const populatedProduct = await Product.findById(newProduct._id)
-            .populate('category', 'name slug image description heading subheading');
+            .populate('category', 'name slug image description');
         
         res.status(201).json({
             message: "Product created successfully",
@@ -48,7 +48,7 @@ export const fetchProducts = async (req, res) => {
     try {
         const products = await Product.find()
             .sort({ createdAt: -1 })
-            .populate('category', 'name slug image description heading subheading');
+            .populate('category', 'name slug image description');
         
         res.status(200).json({
             message: "Products fetched successfully",
@@ -64,7 +64,7 @@ export const fetchProducts = async (req, res) => {
 export const getProductById = async (req, res) => {
     try {
         const product = await Product.findById(req.params.id)
-            .populate('category', 'name slug image description heading subheading subDescription');
+            .populate('category', 'name slug image description');
         
         if (!product) {
             return res.status(404).json({ message: "Product not found" });
@@ -91,7 +91,7 @@ export const getProductsByCategory = async (req, res) => {
         
         const products = await Product.find({ category: categoryId })
             .sort({ createdAt: -1 })
-            .populate('category', 'name slug image description heading subheading');
+            .populate('category', 'name slug image description');
         
         res.status(200).json({
             message: "Products fetched successfully",
@@ -135,7 +135,7 @@ export const updateProduct = async (req, res) => {
             req.params.id,
             updateData,
             { new: true, runValidators: true }
-        ).populate('category', 'name slug image description heading subheading');
+        ).populate('category', 'name slug image description');
         
         if (!updatedProduct) {
             return res.status(404).json({ message: "Product not found" });

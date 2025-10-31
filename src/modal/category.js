@@ -20,18 +20,6 @@ const categorySchema = new mongoose.Schema({
     description: {
         type: String,
         required: false
-    },
-    heading: {
-        type: String,
-        required: false
-    },
-    subheading: {
-        type: String,
-        required: false
-    },
-    subDescription: {
-        type: String,
-        required: false
     }
 }, {
     timestamps: true

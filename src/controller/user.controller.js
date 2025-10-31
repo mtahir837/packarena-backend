@@ -115,13 +115,12 @@ export const updateId = async (req, res) => {
 
 export const signup = async (req, res) => {
   try {
-    const { name, email, password, role, phone, address } = req.body;
+    const { name, email, password } = req.body;
     
     if (!name || !email || !password) {
       return res.status(400).json({ message: "Name, email, and password are required" });
     }
     
-  
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ message: "Please provide a valid email address" });
@@ -138,19 +137,14 @@ export const signup = async (req, res) => {
     
     const hashedPassword = await bcrypt.hash(password, 10);
     
+    // Generate verify token and set expiry (24 hours)
+    const verifyToken = crypto.randomBytes(32).toString('hex');
+    const verifyTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+    
     // Get or assign default role
-    let userRole;
-    if (role) {
-      userRole = await Role.findOne({ name: role });
-      if (!userRole) {
-        userRole = await Role.create({ name: role });
-      }
-    } else {
-      // Default to "user" role
-      userRole = await Role.findOne({ name: "user" });
-      if (!userRole) {
-        userRole = await Role.create({ name: "user" });
-      }
+    let userRole = await Role.findOne({ name: "user" });
+    if (!userRole) {
+      userRole = await Role.create({ name: "user" });
     }
     
     const newUser = new User({ 
@@ -158,29 +152,25 @@ export const signup = async (req, res) => {
       email, 
       password: hashedPassword, 
       role: userRole._id,
-      ...(phone && { phone }),
-      ...(address && { address })
+      verifyToken: verifyToken,
+      verifyTokenExpiry: verifyTokenExpiry,
+      isVerified: false
     });
     await newUser.save();
     
     // Populate role for response
     const populatedUser = await User.findById(newUser._id).populate('role', 'name');
     
-    const token = jwt.sign(
-      { userId: newUser._id, email: newUser.email },
-      process.env.JWT_SECRET || "your-secret-key",
-      { expiresIn: "7d" }
-    );
-    
     res.status(201).json({
-      message: "User created successfully",
+      message: "User created successfully. Please verify your email before logging in.",
       user: {
         id: populatedUser._id,
         name: populatedUser.name,
         email: populatedUser.email,
-        role: populatedUser.role
+        role: populatedUser.role,
+        isVerified: populatedUser.isVerified
       },
-      token
+      verifyToken: verifyToken
     });
     
   } catch (error) {
@@ -203,6 +193,13 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: "Invalid email or password" });
     }
     
+    // Check if user is verified
+    if (!user.isVerified) {
+      return res.status(403).json({ 
+        message: "Please verify your email first before logging in. Check your email for verification link." 
+      });
+    }
+    
     const token = jwt.sign(
       { userId: user._id, email: user.email },
       process.env.JWT_SECRET || "",
@@ -215,9 +212,79 @@ export const login = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        isVerified: user.isVerified
       },
       token
+    });
+    
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const verifyEmail = async (req, res) => {
+  try {
+    const { token } = req.body;
+    
+    if (!token) {
+      return res.status(400).json({ 
+        message: "Verification token is required",
+        error: "Token missing" 
+      });
+    }
+    
+    // Find user with this verifyToken
+    const user = await User.findOne({ verifyToken: token });
+    
+    if (!user) {
+      return res.status(400).json({ 
+        message: "Invalid verification token",
+        error: "Invalid token" 
+      });
+    }
+    
+    // Check if token has expired
+    if (user.verifyTokenExpiry && new Date() > user.verifyTokenExpiry) {
+      // Clear expired token
+      user.verifyToken = null;
+      user.verifyTokenExpiry = null;
+      await user.save();
+      
+      return res.status(400).json({ 
+        message: "Verification token has expired. Please request a new verification email.",
+        error: "Token expired" 
+      });
+    }
+    
+    // Check if already verified
+    if (user.isVerified) {
+      return res.status(200).json({
+        message: "Email already verified",
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          isVerified: user.isVerified
+        }
+      });
+    }
+    
+    // Verify the user
+    user.isVerified = true;
+    user.verifyToken = null; // Clear the token after verification
+    user.verifyTokenExpiry = null; // Clear the expiry
+    await user.save();
+    
+    res.status(200).json({
+      message: "Email verified successfully",
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        isVerified: user.isVerified
+      }
     });
     
   } catch (error) {

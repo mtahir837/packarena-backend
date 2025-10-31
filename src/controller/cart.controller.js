@@ -36,22 +36,18 @@ export const addToCart = async (req, res) => {
         let cart = await Cart.findOne({ user: userId });
 
         if (!cart) {
-            // Create new cart
             cart = new Cart({
                 user: userId,
                 items: [{ product: productId, quantity }]
             });
         } else {
-            // Check if product already exists in cart
             const existingItemIndex = cart.items.findIndex(
                 item => item.product.toString() === productId.toString()
             );
 
             if (existingItemIndex !== -1) {
-                // Update quantity if product exists
                 cart.items[existingItemIndex].quantity += quantity;
             } else {
-                // Add new item to cart
                 cart.items.push({ product: productId, quantity });
             }
         }
